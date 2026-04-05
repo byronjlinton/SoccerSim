@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "soft-ue": {
+      "command": "C:\\Users\\byron\\AppData\\Roaming\\Python\\Python314\\Scripts\\soft-ue-cli.exe",
+      "args": ["mcp-serve"]
+    }
+  }
+}
