@@ -1,0 +1,19 @@
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Build/
+.vs/
+.idea/
+*.sln
+*.VC.db
+*.opensdf
+*.sdf
+*.suo
+*.user
+*.VC.opendb
+
+# Council system data
+data/
+scripts/node_modules/
+scripts/.env.local
