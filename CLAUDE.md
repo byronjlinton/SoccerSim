@@ -42,6 +42,7 @@ taskkill //F //IM UnrealEditor.exe
 - **DefaultLitMaterial has NO parameters**: `SetVectorParameterValue("BaseColor", ...)` silently does nothing. Use `/Game/Art/M_DynamicColor` (custom material with VectorParameter "BaseColor" connected to Base Color output).
 - **Collision profiles need explicit channel responses**: The "Ball" profile in DefaultEngine.ini doesn't implicitly block ECC_WorldStatic. Added `SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block)` in C++ constructor.
 - **Blueprint EditDefaultsOnly properties**: C++ base classes declare UPROPERTY but set no defaults. BP child classes must have values set via `set-asset-property`.
+- **SoftUEBridge HTTP handler can deadlock**: After heavy Python scripting, restart the editor. Save assets frequently before heavy operations.
 
 ## Project Structure
 
@@ -63,20 +64,21 @@ Source/SoccerSim/
 
 ## Current State
 
-- **Phase**: Visual fix verified (materials + collision working), ready for Mixamo animations
-- **Players**: Placeholder cylinders (red=Home, blue=Away) — MetaHuman disabled
-- **Ball**: White sphere with proper physics (CCD, Magnus, drag), verified on field (Z=111)
-- **Field**: Green pitch with white dynamic mesh markings, verified
-- **Animations**: 9 Mixamo anims imported but each has own skeleton — need retargeting
-- **Next**: Mixamo mesh + animation retargeting
+- **Phase**: Animation state machine — transitions wired but need conditions (manual editor recommended)
+- **Players**: 22 players with Dribble skeletal mesh, ABP_SoccerPlayer_C running
+- **Ball**: White sphere with proper physics (CCD, Magnus, drag)
+- **Field**: Green pitch with white dynamic mesh markings
+- **Animations**: 10 Mixamo anims retargeted onto Dribble_Skeleton
+- **AnimBP**: 3 states (Idle, Locomotion, Dribble), 6 transitions with empty conditions
+- **Next**: Wire transition conditions → verify in PIE → team-colored materials
 
 ## Verification Protocol
 
 Never claim something works from logs alone. Always:
-1. `capture-viewport` → visually analyze screenshot (Read the PNG file — it supports images)
+1. `capture-viewport` → visually analyze screenshot (Read the PNG file)
 2. `run-python-script` → query ball/player positions in PIE world
 3. `get-logs --filter error` → check for LogSoccerSim errors
-4. FPS: `set-console-var t.MaxFPS 60` works; `stat fps` does NOT work via soft-ue-cli (not a CVar)
+4. FPS: `set-console-var t.MaxFPS 60` works; `stat fps` does NOT work via soft-ue-cli
 
 ### PIE Python Query Template
 ```python
@@ -85,3 +87,22 @@ es = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
 world = es.get_game_world()
 # Then: unreal.GameplayStatics.get_all_actors_of_class(world, unreal.SoccerBall)
 ```
+
+## Autonomous Chain System
+
+```bash
+bash Scripts/chain.sh          # start autonomous chain
+bash Scripts/chain.sh --status # check status
+bash Scripts/chain.sh --stop   # halt the chain
+tail -f .claude/chain/chain.log  # monitor progress
+```
+
+Sessions self-spawn via `claude -p`, read memory + handoff docs, execute steps, chain when context heavy.
+
+## Claude Code CLI Workflow
+
+- **MCP server**: soft-ue-cli configured in `.mcp.json` — do not modify
+- **Plugins**: superpowers, github, claude-code-setup, code-review enabled
+- **Slash commands**: `/build-and-test`, `/debug-pie`, `/verify-visuals` in `.claude/commands/`
+- **Memory**: Project memory at `~/.claude/projects/c--Users-byron-Cursor-SoccerSim/memory/`
+- **Handoffs**: `Docs/superpowers/handoffs/` for autonomous session chaining
