@@ -31,3 +31,5 @@ Scripts/node_modules/
 .vsconfig
 Content/MetaHumans/
 # Large MetaHuman assets - use Git LFS instead
+# MetaHumans - too large for GitHub
+Content/MetaHumans/
