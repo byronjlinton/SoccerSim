@@ -13,27 +13,17 @@ public class SoccerSim : ModuleRules
             "Engine",
             "InputCore",
             "EnhancedInput",
-            "AIModule",
-            "GameplayTasks",
-            "NavigationSystem",
-            "Niagara",
-            "UMG",
             "PhysicsCore",
             "Slate",
-            "SlateCore",
-            "GameplayTags",
-            "GeometryFramework",
-            "GeometryCore"
+            "SlateCore"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]
         {
             "ChaosCore",
-            "ChaosSolverEngine",
-            "DynamicMesh"
+            "ChaosSolverEngine"
         });
 
-        // Enable exceptions for physics math
         bEnableExceptions = true;
     }
 }
