@@ -4,8 +4,6 @@
 #include "GameFramework/GameModeBase.h"
 #include "SoccerGameMode.generated.h"
 
-class ASoccerPhysicsPawn;
-
 UCLASS()
 class SOCCERSIM_API ASoccerGameMode : public AGameModeBase
 {
@@ -15,7 +13,4 @@ public:
     ASoccerGameMode();
 
     virtual void StartPlay() override;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Sandbox|Config")
-    TSubclassOf<APawn> PhysicsPawnClass;
 };
