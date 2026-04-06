@@ -61,6 +61,14 @@ public:
     UPROPERTY(EditDefaultsOnly, Category = "Match|Config")
     float HalftimeDurationSeconds = 15.0f;
 
+    /** Whistle sound played on match phase transitions (kickoff, halftime, fulltime). */
+    UPROPERTY(EditDefaultsOnly, Category = "Match|Audio", meta = (AllowedClasses = "/Script/Engine.SoundBase"))
+    FSoftObjectPath WhistleSoundPath;
+
+    /** Goal celebration sound. */
+    UPROPERTY(EditDefaultsOnly, Category = "Match|Audio", meta = (AllowedClasses = "/Script/Engine.SoundBase"))
+    FSoftObjectPath GoalCelebrationSoundPath;
+
     UPROPERTY(EditDefaultsOnly, Category = "Match|Config")
     TSubclassOf<ASoccerBall> BallClass;
 
@@ -84,6 +92,7 @@ public:
 protected:
     void SpawnField();
     void SpawnStadiumLighting();
+    void SpawnStadiumGeometry();
     void SpawnBall();
     void SpawnTeams();
     void SpawnTeam(ETeamId Team, const FFormationData& Formation, TArray<ASoccerPlayerPawn*>& OutPlayers);

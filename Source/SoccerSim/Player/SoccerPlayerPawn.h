@@ -160,6 +160,9 @@ protected:
     UPROPERTY(VisibleAnywhere, Category = "Player|Appearance")
     UStaticMeshComponent* PlaceholderHead = nullptr;
 
+    /** Applies team-colored material to the skeletal mesh (if loaded). */
+    void ApplyTeamMeshMaterial();
+
     void UpdateMovement(float DeltaTime);
     void UpdateStamina(float DeltaTime);
     void UpdateDribble(float DeltaTime);

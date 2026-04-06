@@ -2,6 +2,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/DynamicMeshComponent.h"
+#include "Components/AudioComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
@@ -54,6 +55,12 @@ ASoccerField::ASoccerField()
     GroundPlane->SetCollisionResponseToAllChannels(ECR_Block);
     GroundPlane->SetCollisionObjectType(ECC_WorldStatic);
     GroundPlane->SetVisibility(false); // hidden — only for physics
+
+    // Ambient crowd audio component
+    CrowdAmbient = CreateDefaultSubobject<UAudioComponent>(TEXT("CrowdAmbient"));
+    CrowdAmbient->SetupAttachment(PitchMesh);
+    CrowdAmbient->bAutoActivate = false;
+    CrowdAmbient->SetRelativeLocation(FVector(0.0f, 0.0f, 200.0f));
 
     float TriggerThickness = 200.0f;
     float TriggerHeight = 500.0f;
@@ -116,6 +123,27 @@ void ASoccerField::BeginPlay()
         if (PitchMat)
         {
             PitchMesh->SetMaterial(0, PitchMat);
+        }
+    }
+
+    // Crowd ambient audio
+    if (CrowdAmbient)
+    {
+        if (!CrowdAmbientSoundPath.IsValid() && GConfig && GGameIni.Len() > 0)
+        {
+            FString ConfigPath;
+            if (GConfig->GetString(TEXT("/Script/SoccerSim.SoccerField"), TEXT("CrowdAmbientSoundPath"), ConfigPath, GGameIni) && !ConfigPath.IsEmpty())
+            {
+                CrowdAmbientSoundPath.SetPath(ConfigPath);
+            }
+        }
+        if (CrowdAmbientSoundPath.IsValid())
+        {
+            if (USoundBase* CrowdSound = Cast<USoundBase>(CrowdAmbientSoundPath.TryLoad()))
+            {
+                CrowdAmbient->SetSound(CrowdSound);
+                CrowdAmbient->Play(0.3f);
+            }
         }
     }
 

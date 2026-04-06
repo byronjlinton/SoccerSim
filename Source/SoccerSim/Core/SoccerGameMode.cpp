@@ -13,6 +13,9 @@
 #include "Engine/SkyLight.h"
 #include "Engine/ExponentialHeightFog.h"
 #include "Engine/PostProcessVolume.h"
+#include "Engine/StaticMeshActor.h"
+#include "Sound/SoundBase.h"
+#include "Components/AudioComponent.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/LightComponent.h"
@@ -75,6 +78,7 @@ void ASoccerGameMode::StartPlay()
         TEXT("H2"));
     // #endregion
     SpawnStadiumLighting();
+    SpawnStadiumGeometry();
     SpawnBall();
     // #region agent log
     AgentDebugLog(TEXT("SoccerGameMode.cpp:AfterSpawnBall"), TEXT("SpawnBall done"),
@@ -101,15 +105,25 @@ void ASoccerGameMode::StartPlay()
         }
     }
 
-    // Subtle broadcast-style post-process (unbounded)
+    // Broadcast-style post-process (unbounded)
     APostProcessVolume* PPVol = GetWorld()->SpawnActor<APostProcessVolume>(FVector(0.0f, 0.0f, 0.0f), FRotator::ZeroRotator);
     if (PPVol)
     {
         PPVol->bUnbound = true;
         PPVol->Settings.bOverride_AutoExposureBias = true;
-        PPVol->Settings.AutoExposureBias = 0.25f;
+        PPVol->Settings.AutoExposureBias = 0.3f;
         PPVol->Settings.bOverride_ColorSaturation = true;
         PPVol->Settings.ColorSaturation = FVector4(1.05f, 1.05f, 1.05f, 1.0f);
+        PPVol->Settings.bOverride_ColorContrast = true;
+        PPVol->Settings.ColorContrast = FVector4(1.1f, 1.1f, 1.1f, 1.0f);
+        PPVol->Settings.bOverride_BloomIntensity = true;
+        PPVol->Settings.BloomIntensity = 0.15f;
+        PPVol->Settings.bOverride_VignetteIntensity = true;
+        PPVol->Settings.VignetteIntensity = 0.3f;
+        PPVol->Settings.bOverride_SceneFringeIntensity = true;
+        PPVol->Settings.SceneFringeIntensity = 0.1f;
+        PPVol->Settings.bOverride_MotionBlurAmount = true;
+        PPVol->Settings.MotionBlurAmount = 0.2f;
     }
 
     ASoccerPlayerController* PC = Cast<ASoccerPlayerController>(
@@ -169,6 +183,20 @@ void ASoccerGameMode::StartPlay()
 
 void ASoccerGameMode::OnMatchPhaseChanged(EMatchPhase NewPhase)
 {
+    // Play whistle on key phase transitions
+    if (NewPhase == EMatchPhase::KickOff || NewPhase == EMatchPhase::SecondHalfKickOff ||
+        NewPhase == EMatchPhase::HalfTime || NewPhase == EMatchPhase::FullTime)
+    {
+        // Load and play whistle sound if configured
+        if (WhistleSoundPath.IsValid())
+        {
+            if (USoundBase* Whistle = Cast<USoundBase>(WhistleSoundPath.TryLoad()))
+            {
+                UGameplayStatics::PlaySoundAtLocation(this, Whistle, FVector(0.0f, 0.0f, SoccerField::GamePlaneZ + 200.0f));
+            }
+        }
+    }
+
     if (NewPhase == EMatchPhase::HalfTime)
     {
         FTimerHandle HalftimeTimer;
@@ -204,6 +232,15 @@ void ASoccerGameMode::HandleGoalScored(ETeamId ScoringTeam)
 
     GS->OnScoreChanged.Broadcast(GS->HomeScore, GS->AwayScore);
     UE_LOG(LogSoccerSim, Log, TEXT("GOAL! Score: Home %d - %d Away"), GS->HomeScore, GS->AwayScore);
+
+    // Play goal celebration sound if configured
+    if (GoalCelebrationSoundPath.IsValid())
+    {
+        if (USoundBase* GoalSound = Cast<USoundBase>(GoalCelebrationSoundPath.TryLoad()))
+        {
+            UGameplayStatics::PlaySoundAtLocation(this, GoalSound, FVector(0.0f, 0.0f, SoccerField::GamePlaneZ + 200.0f));
+        }
+    }
 
     FTimerHandle TimerHandle;
     GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ASoccerGameMode::ResetToKickOff, 3.0f, false);
@@ -374,6 +411,120 @@ void ASoccerGameMode::SpawnStadiumLighting()
     }
 
     World->SpawnActor<AExponentialHeightFog>(FVector(0.0f, 0.0f, 0.0f), FRotator::ZeroRotator, Params);
+}
+
+void ASoccerGameMode::SpawnStadiumGeometry()
+{
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    // Load materials for stadium
+    UMaterialInterface* ConcreteMat = LoadObject<UMaterial>(nullptr, TEXT("/Game/Art/M_DynamicColor.M_DynamicColor"));
+    auto CreateStandMesh = [&](FVector Location, FVector Scale, FRotator Rotation)
+    {
+        AStaticMeshActor* Stand = World->SpawnActor<AStaticMeshActor>(Location, Rotation);
+        if (Stand)
+        {
+            Stand->SetMobility(EComponentMobility::Movable);
+            UStaticMeshComponent* MeshComp = Stand->GetStaticMeshComponent();
+            if (MeshComp)
+            {
+                UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+                if (CubeMesh)
+                {
+                    MeshComp->SetStaticMesh(CubeMesh);
+                }
+                MeshComp->SetMobility(EComponentMobility::Movable);
+                MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+                MeshComp->SetCollisionResponseToAllChannels(ECR_Block);
+                MeshComp->SetGenerateOverlapEvents(false);
+                Stand->SetActorScale3D(Scale);
+
+                if (ConcreteMat)
+                {
+                    UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(ConcreteMat, MeshComp);
+                    if (DynMat)
+                    {
+                        DynMat->SetVectorParameterValue(FName("BaseColor"), FLinearColor(0.25f, 0.25f, 0.28f));
+                        MeshComp->SetMaterial(0, DynMat);
+                    }
+                }
+            }
+        }
+        return Stand;
+    };
+
+    // Stand dimensions (in scaled units): each is a box
+    // Side stands: 120m long x 15m deep x 10m tall, offset 15m from touchline
+    const float StandHeight = 1200.0f;  // 12m (scaled by actor scale)
+    const float SideStandLength = SoccerField::PitchLength + 1500.0f; // slightly longer than pitch
+    const float StandDepth = 1500.0f;   // 15m deep
+    const float SideStandOffset = SoccerField::HalfWidth + StandDepth * 0.5f + 500.0f;
+
+    // Two sideline stands (Y offset)
+    CreateStandMesh(
+        FVector(0.0f, -SideStandOffset, SoccerField::GamePlaneZ + StandHeight * 0.4f),
+        FVector(SideStandLength / 100.0f, StandDepth / 100.0f, StandHeight / 100.0f),
+        FRotator(0.0f, 0.0f, 0.0f));
+    CreateStandMesh(
+        FVector(0.0f, SideStandOffset, SoccerField::GamePlaneZ + StandHeight * 0.4f),
+        FVector(SideStandLength / 100.0f, StandDepth / 100.0f, StandHeight / 100.0f),
+        FRotator(0.0f, 0.0f, 0.0f));
+
+    // Two end stands (X offset)
+    const float EndStandLength = SoccerField::PitchWidth + 1500.0f;
+    const float EndStandOffset = SoccerField::HalfLength + StandDepth * 0.5f + 500.0f;
+
+    CreateStandMesh(
+        FVector(-EndStandOffset, 0.0f, SoccerField::GamePlaneZ + StandHeight * 0.4f),
+        FVector(StandDepth / 100.0f, EndStandLength / 100.0f, StandHeight / 100.0f),
+        FRotator(0.0f, 0.0f, 0.0f));
+    CreateStandMesh(
+        FVector(EndStandOffset, 0.0f, SoccerField::GamePlaneZ + StandHeight * 0.4f),
+        FVector(StandDepth / 100.0f, EndStandLength / 100.0f, StandHeight / 100.0f),
+        FRotator(0.0f, 0.0f, 0.0f));
+
+    // Floodlight towers — 4 corner posts
+    const float CornerX = SoccerField::HalfLength + 500.0f;
+    const float CornerY = SoccerField::HalfWidth + 500.0f;
+    const float TowerHeight = 3000.0f; // 30m
+
+    auto CreateFloodlight = [&](FVector BaseLocation)
+    {
+        // Tower pole
+        FVector PoleLoc = BaseLocation + FVector(0.0f, 0.0f, TowerHeight * 0.5f + SoccerField::GamePlaneZ);
+        AStaticMeshActor* Pole = World->SpawnActor<AStaticMeshActor>(PoleLoc, FRotator::ZeroRotator);
+        if (Pole)
+        {
+            Pole->SetMobility(EComponentMobility::Movable);
+            UStaticMeshComponent* MeshComp = Pole->GetStaticMeshComponent();
+            if (MeshComp)
+            {
+                UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+                if (CubeMesh)
+                {
+                    MeshComp->SetStaticMesh(CubeMesh);
+                }
+                MeshComp->SetMobility(EComponentMobility::Movable);
+                MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+                Pole->SetActorScale3D(FVector(1.0f, 1.0f, TowerHeight / 100.0f));
+                if (ConcreteMat)
+                {
+                    UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(ConcreteMat, MeshComp);
+                    if (DynMat)
+                    {
+                        DynMat->SetVectorParameterValue(FName("BaseColor"), FLinearColor(0.15f, 0.15f, 0.17f));
+                        MeshComp->SetMaterial(0, DynMat);
+                    }
+                }
+            }
+        }
+    };
+
+    CreateFloodlight(FVector(-CornerX, -CornerY, 0.0f));
+    CreateFloodlight(FVector(-CornerX, CornerY, 0.0f));
+    CreateFloodlight(FVector(CornerX, -CornerY, 0.0f));
+    CreateFloodlight(FVector(CornerX, CornerY, 0.0f));
 }
 
 void ASoccerGameMode::SpawnBall()

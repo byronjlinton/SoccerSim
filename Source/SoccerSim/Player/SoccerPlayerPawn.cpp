@@ -192,6 +192,7 @@ void ASoccerPlayerPawn::InitializePlayer(ETeamId Team, int32 InSlotIndex, const 
         Team == ETeamId::Home ? TEXT("Home") : TEXT("Away"), InSlotIndex + 1);
 
     UpdatePlaceholderAppearance();
+    ApplyTeamMeshMaterial();
 
     if (Slot.Position == EPlayerPosition::GK)
     {
@@ -237,6 +238,35 @@ void ASoccerPlayerPawn::SetMovementInput(FVector2D Input)
 void ASoccerPlayerPawn::SetSprinting(bool bSprint)
 {
     bIsSprinting = bSprint && (CurrentStamina > MaxStamina * 0.05f);
+}
+
+void ASoccerPlayerPawn::ApplyTeamMeshMaterial()
+{
+    if (TeamId == ETeamId::None) return;
+    if (!GetMesh() || !GetMesh()->GetSkeletalMeshAsset()) return;
+
+    // Determine team color
+    FLinearColor TeamColor;
+    switch (TeamId)
+    {
+    case ETeamId::Home: TeamColor = FLinearColor(0.85f, 0.15f, 0.15f); break;  // red
+    case ETeamId::Away: TeamColor = FLinearColor(0.15f, 0.3f, 0.85f); break;   // blue
+    default: return;
+    }
+
+    // Create a dynamic material instance from M_DynamicColor and apply to all mesh slots
+    UMaterialInterface* BaseMat = LoadObject<UMaterial>(nullptr, TEXT("/Game/Art/M_DynamicColor.M_DynamicColor"));
+    if (!BaseMat) return;
+
+    UMaterialInstanceDynamic* TeamMI = UMaterialInstanceDynamic::Create(BaseMat, this);
+    if (!TeamMI) return;
+
+    TeamMI->SetVectorParameterValue(FName("BaseColor"), TeamColor);
+    const int32 NumSlots = GetMesh()->GetNumMaterials();
+    for (int32 i = 0; i < NumSlots; ++i)
+    {
+        GetMesh()->SetMaterial(i, TeamMI);
+    }
 }
 
 void ASoccerPlayerPawn::UpdateMovement(float DeltaTime)

@@ -8,6 +8,7 @@
 class UBoxComponent;
 class UStaticMeshComponent;
 class UDynamicMeshComponent;
+class UAudioComponent;
 
 UCLASS()
 class SOCCERSIM_API ASoccerField : public AActor
@@ -61,6 +62,14 @@ protected:
     /** Extended ground plane under the pitch so the ball doesn't fall off the edge. */
     UPROPERTY(VisibleAnywhere, Category = "Field")
     UStaticMeshComponent* GroundPlane = nullptr;
+
+    /** Ambient crowd audio. Plays a looping crowd sound if the asset is configured. */
+    UPROPERTY(VisibleAnywhere, Category = "Field|Audio")
+    UAudioComponent* CrowdAmbient = nullptr;
+
+    /** Path to crowd ambient sound (WAV or SoundCue). Set via config or BP defaults. */
+    UPROPERTY(EditDefaultsOnly, Category = "Field|Audio", meta = (AllowedClasses = "/Script/Engine.SoundBase"))
+    FSoftObjectPath CrowdAmbientSoundPath;
 
 private:
     void CreateBoundaryTrigger(TObjectPtr<UBoxComponent>& OutComp, FName Name, FVector Location, FVector Extent);
