@@ -49,17 +49,20 @@ void USoccerGoalkeeperAI::TickComponent(float DeltaTime, ELevelTick TickType,
         return;
     }
 
-    // Normal positioning: move to ideal position
+    // Normal positioning: use CMC for smooth acceleration/deceleration
     FVector ToIdeal = IdealPos - GK->GetActorLocation();
     float DistToIdeal = ToIdeal.Size2D();
 
     if (DistToIdeal > 30.0f)
     {
         FVector Dir = ToIdeal.GetSafeNormal2D();
-        float Speed = FMath::Min(DistToIdeal, GKPositioningSpeed) * DeltaTime;
-        FVector NewPos = GK->GetActorLocation() + Dir * Speed;
-        NewPos.Z = SoccerField::GamePlaneZ;
-        GK->SetActorLocation(NewPos);
+        GK->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+        GK->SetSprinting(DistToIdeal > 200.0f);
+    }
+    else
+    {
+        GK->SetMovementInput(FVector2D::ZeroVector);
+        GK->SetSprinting(false);
     }
 
     // Face the ball

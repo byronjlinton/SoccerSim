@@ -213,7 +213,9 @@ void ASoccerAIController::ExecuteAction(const FSoccerAction& Action, float Delta
     {
         FVector Target = Action.TargetLocation;
         FVector Dir = (Target - SoccerPawn->GetActorLocation()).GetSafeNormal();
-        SoccerPawn->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+                    FVector2D DesiredInput(Dir.X, Dir.Y);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
         SoccerPawn->SetSprinting(false); // Controlled dribble
         break;
     }
@@ -236,12 +238,15 @@ void ASoccerAIController::ExecuteAction(const FSoccerAction& Action, float Delta
         if (Dist > PositionTolerance)
         {
             FVector Dir = ToTarget.GetSafeNormal();
-            SoccerPawn->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+            FVector2D DesiredInput(Dir.X, Dir.Y);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
             SoccerPawn->SetSprinting(Dist > 800.0f);
         }
         else
         {
-            SoccerPawn->SetMovementInput(FVector2D::ZeroVector);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, FVector2D::ZeroVector, DeltaTime * 8.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
             SoccerPawn->SetSprinting(false);
         }
         break;
@@ -251,17 +256,22 @@ void ASoccerAIController::ExecuteAction(const FSoccerAction& Action, float Delta
     {
         FVector Target = Action.TargetLocation;
         FVector Dir = (Target - SoccerPawn->GetActorLocation()).GetSafeNormal();
-        SoccerPawn->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+        FVector2D DesiredInput(Dir.X, Dir.Y);
+        SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+        SoccerPawn->SetMovementInput(SmoothedMovementInput);
         SoccerPawn->SetSprinting(true);
         break;
     }
 
     case ESoccerActionType::Press:
     {
-        MoveTowardBall();
-        SoccerPawn->SetSprinting(true);
-
-        // If close enough, attempt tackle
+        {
+            FVector Dir = (Ball->GetActorLocation() - SoccerPawn->GetActorLocation()).GetSafeNormal();
+            FVector2D DesiredInput(Dir.X, Dir.Y);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
+            SoccerPawn->SetSprinting(true);
+        }        // If close enough, attempt tackle
         if (SoccerPawn->HasBall() ||
             FVector::Dist(SoccerPawn->GetActorLocation(), Ball->GetActorLocation()) < PlayerMovement::KickRange * 1.2f)
         {
@@ -280,12 +290,15 @@ void ASoccerAIController::ExecuteAction(const FSoccerAction& Action, float Delta
         if (Dist > PositionTolerance)
         {
             FVector Dir = ToTarget.GetSafeNormal();
-            SoccerPawn->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+                        FVector2D DesiredInput(Dir.X, Dir.Y);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
             SoccerPawn->SetSprinting(Dist > 600.0f);
         }
         else
         {
-            SoccerPawn->SetMovementInput(FVector2D::ZeroVector);
+                        SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, FVector2D::ZeroVector, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
             SoccerPawn->SetSprinting(false);
 
             // Face the ball while in position
@@ -348,12 +361,15 @@ void ASoccerAIController::ExecuteState(EPlayerAIState State, float DeltaTime)
         if (Dist > PositionTolerance)
         {
             FVector Dir = ToTarget.GetSafeNormal();
-            SoccerPawn->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+                        FVector2D DesiredInput(Dir.X, Dir.Y);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
             SoccerPawn->SetSprinting(Dist > 800.0f);
         }
         else
         {
-            SoccerPawn->SetMovementInput(FVector2D::ZeroVector);
+                        SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, FVector2D::ZeroVector, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
             SoccerPawn->SetSprinting(false);
         }
         break;
@@ -366,7 +382,9 @@ void ASoccerAIController::ExecuteState(EPlayerAIState State, float DeltaTime)
             SoccerField::AwayGoalCenter() : SoccerField::HomeGoalCenter();
         FVector RunTarget = BasePos + (GoalPos - BasePos).GetSafeNormal() * 500.0f;
         FVector Dir = (RunTarget - SoccerPawn->GetActorLocation()).GetSafeNormal();
-        SoccerPawn->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+                    FVector2D DesiredInput(Dir.X, Dir.Y);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
         SoccerPawn->SetSprinting(true);
         break;
     }
@@ -376,7 +394,9 @@ void ASoccerAIController::ExecuteState(EPlayerAIState State, float DeltaTime)
         FVector GoalPos = (SoccerPawn->GetTeamId() == ETeamId::Home) ?
             SoccerField::AwayGoalCenter() : SoccerField::HomeGoalCenter();
         FVector Dir = (GoalPos - SoccerPawn->GetActorLocation()).GetSafeNormal();
-        SoccerPawn->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+                    FVector2D DesiredInput(Dir.X, Dir.Y);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
         break;
     }
 
@@ -392,11 +412,14 @@ void ASoccerAIController::ExecuteState(EPlayerAIState State, float DeltaTime)
         if (Dist > PositionTolerance)
         {
             FVector Dir = ToTarget.GetSafeNormal();
-            SoccerPawn->SetMovementInput(FVector2D(Dir.X, Dir.Y));
+                        FVector2D DesiredInput(Dir.X, Dir.Y);
+            SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, DesiredInput, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
         }
         else
         {
-            SoccerPawn->SetMovementInput(FVector2D::ZeroVector);
+                        SmoothedMovementInput = FMath::Lerp(SmoothedMovementInput, FVector2D::ZeroVector, DeltaTime * 5.0f);
+            SoccerPawn->SetMovementInput(SmoothedMovementInput);
         }
         break;
     }

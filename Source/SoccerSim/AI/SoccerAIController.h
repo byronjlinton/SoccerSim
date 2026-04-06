@@ -79,5 +79,8 @@ protected:
     FVector GetFormationWorldPosition() const;
     FVector GetShiftedPosition() const;
 
+    /** Smoothed movement input to prevent jittery direction changes */
+    FVector2D SmoothedMovementInput = FVector2D::ZeroVector;
+
     ASoccerBall* FindBall() const;
 };

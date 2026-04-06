@@ -286,11 +286,19 @@ void ASoccerPlayerPawn::ApplyTeamMeshMaterial()
 
 void ASoccerPlayerPawn::UpdateMovement(float DeltaTime)
 {
+    UCharacterMovementComponent* CMC = GetCharacterMovement();
+    if (!CMC) return;
+
+    // When input is zero, let CMC apply braking deceleration naturally.
+    // The old code returned early here, which froze players because CMC
+    // never got to decelerate — velocity was whatever it was last frame.
     if (CurrentMovementInput.IsNearlyZero())
     {
+        CMC->AddInputVector(FVector::ZeroVector);
         return;
     }
 
+    // Camera-relative direction
     float CameraYaw = 0.0f;
     if (APlayerController* PC = Cast<APlayerController>(GetController()))
     {
@@ -313,22 +321,28 @@ void ASoccerPlayerPawn::UpdateMovement(float DeltaTime)
         TargetSpeed *= 0.85f;
     }
 
-    GetCharacterMovement()->MaxWalkSpeed = TargetSpeed;
+    CMC->MaxWalkSpeed = TargetSpeed;
 
     float CurrentSpeed = GetVelocity().Size();
     float SpeedRatio = FMath::Clamp(CurrentSpeed / SprintSpeed, 0.0f, 1.0f);
     float CurrentTurnRate = FMath::Lerp(TurnRateStanding, TurnRateSprinting, SpeedRatio);
-    GetCharacterMovement()->RotationRate = FRotator(0.0f, CurrentTurnRate, 0.0f);
+    CMC->RotationRate = FRotator(0.0f, CurrentTurnRate, 0.0f);
 
-    // Directly set velocity instead of AddMovementInput.
-    // AddMovementInput uses ConsumeInputVector which routes through
-    // ReplicatedInputVector for non-locally-controlled pawns (AI),
-    // causing AI characters to never actually receive movement input.
-    FVector CurrentVel = GetCharacterMovement()->Velocity;
-    GetCharacterMovement()->Velocity = FVector(
-        WorldDirection.X * TargetSpeed,
-        WorldDirection.Y * TargetSpeed,
-        CurrentVel.Z);
+    // Feed input through CMC's acceleration system so it handles
+    // acceleration (2000 cm/s²) and braking deceleration (2400 cm/s²).
+    // If AddInputVector doesn't work for AI pawns (the old comment said
+    // it didn't), fall back to direct velocity with manual interpolation.
+    CMC->AddInputVector(WorldDirection);
+
+    // Fallback: if AI pawns don't respond to AddInputVector,
+    // manually interpolate velocity toward target.
+    FVector TargetVel(WorldDirection.X * TargetSpeed, WorldDirection.Y * TargetSpeed, CMC->Velocity.Z);
+    if (CMC->Velocity.Size2D() < TargetSpeed * 0.5f && !CurrentMovementInput.IsNearlyZero())
+    {
+        // Not accelerating — CMC may not be processing our input.
+        // Apply direct velocity with smooth ramp-up.
+        CMC->Velocity = FMath::VInterpTo(CMC->Velocity, TargetVel, DeltaTime, 10.0f);
+    }
 }
 
 void ASoccerPlayerPawn::UpdateStamina(float DeltaTime)

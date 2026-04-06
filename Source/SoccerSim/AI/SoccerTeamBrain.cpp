@@ -324,20 +324,10 @@ FVector USoccerTeamBrain::GetShiftedFormationPosition(const ASoccerPlayerPawn* P
 
 bool USoccerTeamBrain::ShouldPlayerPress(const ASoccerPlayerPawn* Player) const
 {
-    if (!Player) return false;
+    if (!Player || PressState == ETeamPressState::NoPress) return false;
+    if (PressingPlayerIndices.Num() == 0) return false;
 
-    // Check if this player is in the pressing list
-    for (int32 Idx : PressingPlayerIndices)
-    {
-        // We can't directly compare by index here since we don't have the full team array
-        // Instead, check if this player is one of the pressers by distance ranking
-    }
-
-    // Simplified: check if this player is close to ball and pressing is active
-    if (PressState == ETeamPressState::NoPress) return false;
-
-    // If pressing is active and player is reasonably close, they should press
-    return true; // Will be filtered further by the individual utility evaluator
+    return PressingPlayerIndices.Contains(Player->GetSlotIndex());
 }
 
 ASoccerPlayerPawn* USoccerTeamBrain::GetMarkTarget(const ASoccerPlayerPawn* Player) const
