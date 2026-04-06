@@ -58,6 +58,10 @@ protected:
                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
                            bool bFromSweep, const FHitResult& SweepResult);
 
+    /** Extended ground plane under the pitch so the ball doesn't fall off the edge. */
+    UPROPERTY(VisibleAnywhere, Category = "Field")
+    UStaticMeshComponent* GroundPlane = nullptr;
+
 private:
     void CreateBoundaryTrigger(TObjectPtr<UBoxComponent>& OutComp, FName Name, FVector Location, FVector Extent);
     void GenerateFieldMarkings();

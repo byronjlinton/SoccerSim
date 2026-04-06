@@ -275,7 +275,15 @@ void ASoccerPlayerPawn::UpdateMovement(float DeltaTime)
     float CurrentTurnRate = FMath::Lerp(TurnRateStanding, TurnRateSprinting, SpeedRatio);
     GetCharacterMovement()->RotationRate = FRotator(0.0f, CurrentTurnRate, 0.0f);
 
-    AddMovementInput(WorldDirection, 1.0f);
+    // Directly set velocity instead of AddMovementInput.
+    // AddMovementInput uses ConsumeInputVector which routes through
+    // ReplicatedInputVector for non-locally-controlled pawns (AI),
+    // causing AI characters to never actually receive movement input.
+    FVector CurrentVel = GetCharacterMovement()->Velocity;
+    GetCharacterMovement()->Velocity = FVector(
+        WorldDirection.X * TargetSpeed,
+        WorldDirection.Y * TargetSpeed,
+        CurrentVel.Z);
 }
 
 void ASoccerPlayerPawn::UpdateStamina(float DeltaTime)

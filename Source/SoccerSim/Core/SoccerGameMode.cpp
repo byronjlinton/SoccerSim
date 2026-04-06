@@ -150,11 +150,18 @@ void ASoccerGameMode::StartPlay()
         GS->SetMatchPhase(EMatchPhase::KickOff);
         GS->OnMatchPhaseChanged.AddDynamic(this, &ASoccerGameMode::OnMatchPhaseChanged);
         FTimerHandle KickOffTimer;
-        GetWorld()->GetTimerManager().SetTimer(KickOffTimer, [this]()
+        GetWorld()->GetTimerManager().SetTimer(KickOffTimer, [this, GS]()
         {
-            if (ASoccerGameState* GState = GetGameState<ASoccerGameState>())
+            GS->SetMatchPhase(EMatchPhase::FirstHalf);
+            GS->CurrentBallState = EBallState::InPlay;
+
+            // Kickoff: give ball a small forward kick so play begins
+            if (MatchBall)
             {
-                GState->SetMatchPhase(EMatchPhase::FirstHalf);
+                FVector KickDir = FVector::ForwardVector;
+                float KickPower = 400.0f;
+                FVector Impulse = KickDir * KickPower * BallPhysics::Mass;
+                MatchBall->ApplyKick(Impulse, FVector::ZeroVector);
             }
         }, 2.0f, false);
     }
@@ -244,6 +251,13 @@ void ASoccerGameMode::ResetToKickOff()
         MatchBall->ResetBall(FVector(0.0f, 0.0f, SoccerField::GamePlaneZ + BallPhysics::Radius + 5.0f));
     }
 
+    ASoccerGameState* GS = GetGameState<ASoccerGameState>();
+    if (GS)
+    {
+        GS->CurrentBallState = EBallState::Dead;
+        GS->SetMatchPhase(EMatchPhase::KickOff);
+    }
+
     const float PlayerZ = SoccerField::GamePlaneZ + PlayerMovement::CapsuleHalfHeight + 5.0f;
     const FRotator HomeRot(0.0f, 0.0f, 0.0f);
     const FRotator AwayRot(0.0f, 180.0f, 0.0f);
@@ -266,6 +280,24 @@ void ASoccerGameMode::ResetToKickOff()
             P->RepositionToFormation(Pos, AwayRot);
         }
     }
+
+    // After short delay, start play with a kickoff kick
+    FTimerHandle KickOffTimer;
+    GetWorld()->GetTimerManager().SetTimer(KickOffTimer, [this, GS]()
+    {
+        if (GS)
+        {
+            GS->SetMatchPhase(EMatchPhase::FirstHalf);
+            GS->CurrentBallState = EBallState::InPlay;
+        }
+        if (MatchBall)
+        {
+            FVector KickDir = FVector::ForwardVector;
+            float KickPower = 400.0f;
+            FVector Impulse = KickDir * KickPower * BallPhysics::Mass;
+            MatchBall->ApplyKick(Impulse, FVector::ZeroVector);
+        }
+    }, 2.0f, false);
 
     UE_LOG(LogSoccerSim, Log, TEXT("Reset to kick off"));
 }

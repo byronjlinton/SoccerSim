@@ -445,7 +445,9 @@ FSoccerAction USoccerUtilityEvaluator::ScoreHoldPosition(ASoccerPlayerPawn* Pawn
     float AttackPenalty = Perception.bMyTeamHasBall ? 0.5f : 1.0f;
 
     Action.Score = BaseScore * FormationFitness * AttackPenalty;
-    Action.TargetLocation = Perception.ShiftedFormationPosition;
+    // Leave TargetLocation zero so ExecuteAction falls back to GetShiftedPosition(),
+    // which correctly computes ball-attracted, zone-clamped formation position.
+    Action.TargetLocation = FVector::ZeroVector;
 
     return Action;
 }
@@ -558,7 +560,8 @@ FSoccerAction USoccerUtilityEvaluator::ScoreCoverLane(ASoccerPlayerPawn* Pawn)
                   + PositionBonus * 0.3f
                   + Urgency * 0.3f;
 
-    Action.TargetLocation = Perception.ShiftedFormationPosition;
+    // Leave TargetLocation zero so ExecuteAction falls back to GetShiftedPosition()
+    Action.TargetLocation = FVector::ZeroVector;
 
     return Action;
 }

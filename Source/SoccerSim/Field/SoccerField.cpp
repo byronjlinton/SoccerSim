@@ -40,6 +40,21 @@ ASoccerField::ASoccerField()
     PitchMesh->SetCollisionResponseToAllChannels(ECR_Block);
     PitchMesh->SetCollisionObjectType(ECC_WorldStatic);
 
+    // Extended ground plane — larger than the pitch so the ball doesn't fall off edges
+    GroundPlane = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GroundPlane"));
+    GroundPlane->SetupAttachment(PitchMesh);
+    if (CubeMesh.Succeeded())
+    {
+        GroundPlane->SetStaticMesh(CubeMesh.Object);
+        // 200m x 200m x 2m — much larger than the 105m x 68m pitch
+        GroundPlane->SetRelativeScale3D(FVector(200.0f, 200.0f, 0.02f));
+        GroundPlane->SetRelativeLocation(FVector(0.0f, 0.0f, -0.5f));
+    }
+    GroundPlane->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    GroundPlane->SetCollisionResponseToAllChannels(ECR_Block);
+    GroundPlane->SetCollisionObjectType(ECC_WorldStatic);
+    GroundPlane->SetVisibility(false); // hidden — only for physics
+
     float TriggerThickness = 200.0f;
     float TriggerHeight = 500.0f;
     float Offset = TriggerThickness / 2.0f;
