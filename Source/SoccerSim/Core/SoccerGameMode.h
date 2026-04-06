@@ -55,7 +55,7 @@ public:
     ASoccerBroadcastCamera* BroadcastCamera;
 
     UPROPERTY(EditDefaultsOnly, Category = "Match|Config")
-    float HalfDurationSeconds = 270.0f;
+    float HalfDurationSeconds = 120.0f;
 
     /** Duration of halftime before second half kick-off (seconds). */
     UPROPERTY(EditDefaultsOnly, Category = "Match|Config")

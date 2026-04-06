@@ -130,7 +130,7 @@ void ASoccerGameMode::StartPlay()
         UGameplayStatics::GetPlayerController(this, 0));
     if (PC && HomePlayers.Num() > 0)
     {
-        ASoccerPlayerPawn* StartPlayer = HomePlayers.Num() > 10 ? HomePlayers[10] : HomePlayers.Last();
+        ASoccerPlayerPawn* StartPlayer = HomePlayers.Last();
         PC->Possess(StartPlayer);
         UE_LOG(LogSoccerSim, Log, TEXT("Human player possessing: %s"), *StartPlayer->GetName());
         // Keep broadcast camera as view target (possession would otherwise switch view to the pawn)
@@ -542,76 +542,46 @@ void ASoccerGameMode::SpawnBall()
 
 void ASoccerGameMode::SpawnTeams()
 {
+    // 5v5 formation: GK, CB, CB, CM, ST
     FFormationData DefaultFormation;
     DefaultFormation.Formation = EFormation::F_442;
-    DefaultFormation.DisplayName = TEXT("4-4-2");
-    DefaultFormation.Slots.SetNum(11);
+    DefaultFormation.DisplayName = TEXT("1-2-1 (5v5)");
+    DefaultFormation.Slots.SetNum(5);
 
+    // Slot 0: Goalkeeper — stays deep, narrow zone
     DefaultFormation.Slots[0].NormalizedPosition = FVector2D(0.04f, 0.50f);
     DefaultFormation.Slots[0].Position = EPlayerPosition::GK;
     DefaultFormation.Slots[0].BallAttraction = 0.05f;
-    DefaultFormation.Slots[0].ZoneMin = FVector2D(0.0f, 0.2f);
-    DefaultFormation.Slots[0].ZoneMax = FVector2D(0.15f, 0.8f);
+    DefaultFormation.Slots[0].ZoneMin = FVector2D(0.0f, 0.15f);
+    DefaultFormation.Slots[0].ZoneMax = FVector2D(0.15f, 0.85f);
 
-    DefaultFormation.Slots[1].NormalizedPosition = FVector2D(0.22f, 0.12f);
-    DefaultFormation.Slots[1].Position = EPlayerPosition::LB;
-    DefaultFormation.Slots[1].BallAttraction = 0.25f;
+    // Slot 1: Left Centre-Back
+    DefaultFormation.Slots[1].NormalizedPosition = FVector2D(0.25f, 0.30f);
+    DefaultFormation.Slots[1].Position = EPlayerPosition::CB;
+    DefaultFormation.Slots[1].BallAttraction = 0.20f;
     DefaultFormation.Slots[1].ZoneMin = FVector2D(0.05f, 0.0f);
-    DefaultFormation.Slots[1].ZoneMax = FVector2D(0.65f, 0.40f);
+    DefaultFormation.Slots[1].ZoneMax = FVector2D(0.60f, 0.55f);
 
-    DefaultFormation.Slots[2].NormalizedPosition = FVector2D(0.20f, 0.37f);
+    // Slot 2: Right Centre-Back
+    DefaultFormation.Slots[2].NormalizedPosition = FVector2D(0.25f, 0.70f);
     DefaultFormation.Slots[2].Position = EPlayerPosition::CB;
-    DefaultFormation.Slots[2].BallAttraction = 0.15f;
-    DefaultFormation.Slots[2].ZoneMin = FVector2D(0.05f, 0.15f);
-    DefaultFormation.Slots[2].ZoneMax = FVector2D(0.50f, 0.60f);
+    DefaultFormation.Slots[2].BallAttraction = 0.20f;
+    DefaultFormation.Slots[2].ZoneMin = FVector2D(0.05f, 0.45f);
+    DefaultFormation.Slots[2].ZoneMax = FVector2D(0.60f, 1.0f);
 
-    DefaultFormation.Slots[3].NormalizedPosition = FVector2D(0.20f, 0.63f);
-    DefaultFormation.Slots[3].Position = EPlayerPosition::CB;
-    DefaultFormation.Slots[3].BallAttraction = 0.15f;
-    DefaultFormation.Slots[3].ZoneMin = FVector2D(0.05f, 0.40f);
-    DefaultFormation.Slots[3].ZoneMax = FVector2D(0.50f, 0.85f);
+    // Slot 3: Central Midfielder — box-to-box
+    DefaultFormation.Slots[3].NormalizedPosition = FVector2D(0.50f, 0.50f);
+    DefaultFormation.Slots[3].Position = EPlayerPosition::CM;
+    DefaultFormation.Slots[3].BallAttraction = 0.45f;
+    DefaultFormation.Slots[3].ZoneMin = FVector2D(0.15f, 0.15f);
+    DefaultFormation.Slots[3].ZoneMax = FVector2D(0.85f, 0.85f);
 
-    DefaultFormation.Slots[4].NormalizedPosition = FVector2D(0.22f, 0.88f);
-    DefaultFormation.Slots[4].Position = EPlayerPosition::RB;
-    DefaultFormation.Slots[4].BallAttraction = 0.25f;
-    DefaultFormation.Slots[4].ZoneMin = FVector2D(0.05f, 0.60f);
-    DefaultFormation.Slots[4].ZoneMax = FVector2D(0.65f, 1.0f);
-
-    DefaultFormation.Slots[5].NormalizedPosition = FVector2D(0.48f, 0.12f);
-    DefaultFormation.Slots[5].Position = EPlayerPosition::LM;
-    DefaultFormation.Slots[5].BallAttraction = 0.35f;
-    DefaultFormation.Slots[5].ZoneMin = FVector2D(0.15f, 0.0f);
-    DefaultFormation.Slots[5].ZoneMax = FVector2D(0.85f, 0.45f);
-
-    DefaultFormation.Slots[6].NormalizedPosition = FVector2D(0.45f, 0.37f);
-    DefaultFormation.Slots[6].Position = EPlayerPosition::CM;
-    DefaultFormation.Slots[6].BallAttraction = 0.40f;
-    DefaultFormation.Slots[6].ZoneMin = FVector2D(0.15f, 0.10f);
-    DefaultFormation.Slots[6].ZoneMax = FVector2D(0.80f, 0.65f);
-
-    DefaultFormation.Slots[7].NormalizedPosition = FVector2D(0.45f, 0.63f);
-    DefaultFormation.Slots[7].Position = EPlayerPosition::CM;
-    DefaultFormation.Slots[7].BallAttraction = 0.40f;
-    DefaultFormation.Slots[7].ZoneMin = FVector2D(0.15f, 0.35f);
-    DefaultFormation.Slots[7].ZoneMax = FVector2D(0.80f, 0.90f);
-
-    DefaultFormation.Slots[8].NormalizedPosition = FVector2D(0.48f, 0.88f);
-    DefaultFormation.Slots[8].Position = EPlayerPosition::RM;
-    DefaultFormation.Slots[8].BallAttraction = 0.35f;
-    DefaultFormation.Slots[8].ZoneMin = FVector2D(0.15f, 0.55f);
-    DefaultFormation.Slots[8].ZoneMax = FVector2D(0.85f, 1.0f);
-
-    DefaultFormation.Slots[9].NormalizedPosition = FVector2D(0.75f, 0.38f);
-    DefaultFormation.Slots[9].Position = EPlayerPosition::ST;
-    DefaultFormation.Slots[9].BallAttraction = 0.35f;
-    DefaultFormation.Slots[9].ZoneMin = FVector2D(0.35f, 0.10f);
-    DefaultFormation.Slots[9].ZoneMax = FVector2D(1.0f, 0.65f);
-
-    DefaultFormation.Slots[10].NormalizedPosition = FVector2D(0.75f, 0.62f);
-    DefaultFormation.Slots[10].Position = EPlayerPosition::ST;
-    DefaultFormation.Slots[10].BallAttraction = 0.35f;
-    DefaultFormation.Slots[10].ZoneMin = FVector2D(0.35f, 0.35f);
-    DefaultFormation.Slots[10].ZoneMax = FVector2D(1.0f, 0.90f);
+    // Slot 4: Striker — stays high
+    DefaultFormation.Slots[4].NormalizedPosition = FVector2D(0.78f, 0.50f);
+    DefaultFormation.Slots[4].Position = EPlayerPosition::ST;
+    DefaultFormation.Slots[4].BallAttraction = 0.35f;
+    DefaultFormation.Slots[4].ZoneMin = FVector2D(0.40f, 0.15f);
+    DefaultFormation.Slots[4].ZoneMax = FVector2D(1.0f, 0.85f);
 
     SpawnTeam(ETeamId::Home, DefaultFormation, HomePlayers);
     SpawnTeam(ETeamId::Away, DefaultFormation, AwayPlayers);
