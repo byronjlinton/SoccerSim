@@ -66,6 +66,21 @@ void ASoccerPlayerPawn::BeginPlay()
     Super::BeginPlay();
     CurrentStamina = MaxStamina;
 
+    // Config-driven animation montage paths
+    if (GConfig && GGameIni.Len() > 0)
+    {
+        FString ConfigMontagePath;
+        if (!KickMontagePath.IsValid() && GConfig->GetString(TEXT("/Script/SoccerSim.SoccerPlayerPawn"), TEXT("DefaultKickMontagePath"), ConfigMontagePath, GGameIni) && !ConfigMontagePath.IsEmpty())
+        {
+            KickMontagePath.SetPath(ConfigMontagePath);
+        }
+        FString ConfigDeferred;
+        if (GConfig->GetString(TEXT("/Script/SoccerSim.SoccerPlayerPawn"), TEXT("bKickDeferredByMontage"), ConfigDeferred, GGameIni) && !ConfigDeferred.IsEmpty())
+        {
+            bKickDeferredByMontage = (ConfigDeferred == TEXT("True") || ConfigDeferred == TEXT("1"));
+        }
+    }
+
     LoadAnimationMontages();
 
     // Optional default mesh path from config (DefaultGame.ini [/Script/SoccerSim.SoccerPlayerPawn] DefaultMetaHumanMeshPath="...")
@@ -458,7 +473,9 @@ void ASoccerPlayerPawn::AttemptKick(EKickType KickType)
     }
     else
     {
+        // Execute kick immediately and play montage for visual feedback
         ExecuteKickFromNotify();
+        PlayKickMontage();
     }
 }
 
@@ -478,7 +495,9 @@ void ASoccerPlayerPawn::AttemptShot(float ChargeTime)
     }
     else
     {
+        // Execute kick immediately and play montage for visual feedback
         ExecuteKickFromNotify();
+        PlayKickMontage();
     }
 }
 
