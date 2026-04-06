@@ -29,3 +29,5 @@ Scripts/node_modules/
 .claude/settings.json
 .claude/scheduled_tasks.lock
 .vsconfig
+Content/MetaHumans/
+# Large MetaHuman assets - use Git LFS instead
