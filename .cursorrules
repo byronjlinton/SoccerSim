@@ -1,9 +1,0 @@
-# SoccerSim — Cursor Rules
-
-## Single Source of Truth
-For all project conventions, build commands, quirks, and verification protocol, see `CLAUDE.md` in the project root. That file is authoritative.
-
-## Cursor-Specific
-- This project uses Claude Code (via Cursor extension) with GLM-5.1 through Z.AI API
-- The MCP bridge (soft-ue-cli) is configured in `.mcp.json` — do not modify
-- Superpowers plugin is active — follow its workflow skills (brainstorming → planning → execution)

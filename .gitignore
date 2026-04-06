@@ -17,3 +17,15 @@ Build/
 data/
 scripts/node_modules/
 scripts/.env.local
+
+# Debug / working artifacts
+debug-*.log
+*.png
+!Content/**/*.png
+.soft-ue-bridge/
+Scripts/node_modules/
+
+# Claude Code local config
+.claude/settings.json
+.claude/scheduled_tasks.lock
+.vsconfig

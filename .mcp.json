@@ -3,6 +3,10 @@
     "soft-ue": {
       "command": "C:\\Users\\byron\\AppData\\Roaming\\Python\\Python314\\Scripts\\soft-ue-cli.exe",
       "args": ["mcp-serve"]
+    },
+    "unreal-claude": {
+      "url": "http://localhost:3000/mcp",
+      "description": "UnrealClaude MCP Bridge — 20+ tools for actor manipulation, Blueprint editing, animation state machines, materials, assets, viewport capture. Requires UE editor running with UnrealClaude plugin loaded."
     }
   }
 }
