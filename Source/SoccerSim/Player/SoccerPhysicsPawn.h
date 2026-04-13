@@ -8,6 +8,7 @@
 class UPhysicsLocomotionComponent;
 class UPhysicsMuscleComponent;
 class UCapsuleComponent;
+class UCameraComponent;
 
 /**
  * Physics-driven player pawn using active ragdoll (Euphoria-style).
@@ -61,6 +62,10 @@ public:
     /** Game-level collision capsule (follows pelvis). */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PhysicsPawn|Components")
     UCapsuleComponent* CapsuleComp = nullptr;
+
+    /** Third-person follow camera. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PhysicsPawn|Components")
+    UCameraComponent* CameraComp = nullptr;
 
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "PhysicsPawn|RootDrive")

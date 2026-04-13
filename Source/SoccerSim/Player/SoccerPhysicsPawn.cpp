@@ -1,5 +1,7 @@
 #include "SoccerPhysicsPawn.h"
 #include "Components/CapsuleComponent.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "Engine/SkeletalMesh.h"
@@ -21,6 +23,18 @@ ASoccerPhysicsPawn::ASoccerPhysicsPawn()
     CapsuleComp->SetSimulatePhysics(false);
     CapsuleComp->SetEnableGravity(false);
     RootComponent = CapsuleComp;
+
+    // -- Spring Arm (offset behind and above the pawn) --
+    USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+    SpringArm->SetupAttachment(CapsuleComp);
+    SpringArm->TargetArmLength = 300.0f;
+    SpringArm->SocketOffset = FVector(0.0f, 0.0f, 100.0f);
+    SpringArm->bUsePawnControlRotation = false;
+    SpringArm->bDoCollisionTest = false;
+
+    // -- Camera --
+    CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
+    CameraComp->SetupAttachment(SpringArm);
 
     // -- Skeletal Mesh (physics-driven, auto-detaches from capsule when physics starts) --
     MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PhysicsMesh"));
