@@ -4,6 +4,7 @@
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/SkeletalBodySetup.h"
 #include "UObject/ConstructorHelpers.h"
 #include "SoccerSim/SoccerSim.h"
 #include "PhysicsLocomotionComponent.h"
