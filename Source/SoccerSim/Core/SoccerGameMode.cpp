@@ -49,6 +49,7 @@ void ASoccerGameMode::StartPlay()
                 OldPawn->Destroy();
             }
             PC->Possess(SpawnedPawn);
+            PC->SetViewTarget(SpawnedPawn);
             UE_LOG(LogSoccerSim, Log, TEXT("PlayerController possessed physics pawn"));
         }
     }
