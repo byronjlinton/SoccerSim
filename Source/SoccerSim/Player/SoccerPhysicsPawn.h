@@ -40,6 +40,9 @@ public:
     UFUNCTION(BlueprintPure, Category = "PhysicsPawn")
     bool HasMovementInput() const { return !CurrentMovementInput.IsNearlyZero(); }
 
+    UFUNCTION(BlueprintPure, Category = "PhysicsPawn")
+    FVector2D GetMovementInput() const { return CurrentMovementInput; }
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PhysicsPawn|Mesh", meta = (AllowedClasses = "/Script/Engine.SkeletalMesh"))
     FSoftObjectPath SkeletalMeshPath;
 
