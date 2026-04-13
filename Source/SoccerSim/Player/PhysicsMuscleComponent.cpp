@@ -33,15 +33,19 @@ void UPhysicsMuscleComponent::SetupPhysicalAnimationDrives()
     UPhysicalAnimationComponent* PhysAnim = Owner->PhysAnimComp;
     PhysAnim->SetSkeletalMeshComponent(MeshComp);
 
-    // Default drive settings for all bodies — strong orientation + position drives
+    // CRITICAL: bIsLocalSimulation = true
+    // Previous value (false) drove bodies toward world-space reference positions,
+    // causing the entire skeleton to be yanked back to origin when the root moved.
+    // With true, drives target local transforms relative to parent body — the
+    // skeleton maintains its shape while the pelvis moves freely.
     FPhysicalAnimationData DefaultDrive;
-    DefaultDrive.bIsLocalSimulation = false;
-    DefaultDrive.OrientationStrength = 500.0f;
-    DefaultDrive.AngularVelocityStrength = 500.0f;
-    DefaultDrive.PositionStrength = 500.0f;
-    DefaultDrive.VelocityStrength = 500.0f;
+    DefaultDrive.bIsLocalSimulation = true;
+    DefaultDrive.OrientationStrength = 300.0f;
+    DefaultDrive.AngularVelocityStrength = 30.0f;
+    DefaultDrive.PositionStrength = 200.0f;
+    DefaultDrive.VelocityStrength = 20.0f;
     DefaultDrive.MaxAngularForce = SpineMaxForce;
-    DefaultDrive.MaxLinearForce = 0.0f; // linear force not needed for joint motors
+    DefaultDrive.MaxLinearForce = 3000.0f; // Was 0 — position drive was doing nothing
 
     PhysAnim->ApplyPhysicalAnimationSettingsBelow(NAME_None, DefaultDrive, true);
 }
@@ -56,17 +60,14 @@ void UPhysicsMuscleComponent::TickComponent(float DeltaTime, ELevelTick TickType
 
 void UPhysicsMuscleComponent::ApplyStandingPose()
 {
-    // Phase 1: Set all bodies to their reference pose (zero offset from bind pose).
-    // The PhysicalAnimationComponent drives bodies toward the reference pose.
-    // Setting orientation strength makes bodies hold their bind-pose rotation.
+    // Phase 1: Ensure bodies are awake and simulating.
+    // Do NOT call ResetAllBodiesSimulatePhysics() — it resets all bodies
+    // to reference pose AND disables physics simulation, which destroys the
+    // PhysicalAnimation drives that were just configured. The bodies already
+    // start at the reference pose (default for skeletal mesh with no AnimBP).
     if (!MeshComp) return;
 
-    // Reset all bodies to reference pose transform
-    MeshComp->ResetAllBodiesSimulatePhysics();
-
-    // Enable physics on all bodies again (ResetAllBodiesSimulatePhysics disables sim)
-    MeshComp->SetAllBodiesSimulatePhysics(true);
     MeshComp->WakeAllRigidBodies();
 
-    UE_LOG(LogSoccerSim, Log, TEXT("PhysicsMuscleComponent: Standing pose applied (reference pose)"));
+    UE_LOG(LogSoccerSim, Log, TEXT("PhysicsMuscleComponent: Standing pose applied (bodies woken)"));
 }

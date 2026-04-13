@@ -21,7 +21,7 @@ ASoccerPhysicsPawn::ASoccerPhysicsPawn()
     CapsuleComp->SetEnableGravity(false);
     RootComponent = CapsuleComp;
 
-    // -- Skeletal Mesh (physics-driven, NOT attached to capsule — it follows pelvis) --
+    // -- Skeletal Mesh (physics-driven, auto-detaches from capsule when physics starts) --
     MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PhysicsMesh"));
     MeshComp->SetupAttachment(CapsuleComp);
     MeshComp->SetCollisionProfileName(TEXT("PhysicsActor"));
@@ -42,10 +42,19 @@ ASoccerPhysicsPawn::ASoccerPhysicsPawn()
     {
         MeshComp->SetSkeletalMesh(MeshLoader.Object);
     }
+    else
+    {
+        UE_LOG(LogSoccerSim, Error, TEXT("SoccerPhysicsPawn: Failed to load skeletal mesh '/Game/Anim/Mixamo/Dribble'"));
+    }
+
     static ConstructorHelpers::FObjectFinder<UPhysicsAsset> PhysAssetLoader(TEXT("/Game/Anim/Mixamo/Dribble_PhysicsAsset.Dribble_PhysicsAsset"));
     if (PhysAssetLoader.Succeeded())
     {
         MeshComp->SetPhysicsAsset(PhysAssetLoader.Object);
+    }
+    else
+    {
+        UE_LOG(LogSoccerSim, Error, TEXT("SoccerPhysicsPawn: Failed to load physics asset '/Game/Anim/Mixamo/Dribble_PhysicsAsset'"));
     }
 
     bReplicates = false;
@@ -83,42 +92,67 @@ void ASoccerPhysicsPawn::BeginPlay()
 
 void ASoccerPhysicsPawn::InitPhysics()
 {
-    if (!MeshComp || !MeshComp->GetSkeletalMeshAsset()) return;
+    if (!MeshComp || !MeshComp->GetSkeletalMeshAsset())
+    {
+        UE_LOG(LogSoccerSim, Error, TEXT("SoccerPhysicsPawn: No skeletal mesh assigned. Cannot init physics."));
+        return;
+    }
 
-    // Must have a physics asset to simulate
     if (!MeshComp->GetPhysicsAsset())
     {
         UE_LOG(LogSoccerSim, Warning, TEXT("SoccerPhysicsPawn: No PhysicsAsset set. Ragdoll physics will not work."));
         return;
     }
 
+    // Log diagnostic info about the physics asset
+    UPhysicsAsset* PhysAsset = MeshComp->GetPhysicsAsset();
+    UE_LOG(LogSoccerSim, Log, TEXT("SoccerPhysicsPawn: PhysicsAsset '%s' has %d body setups"),
+        *PhysAsset->GetName(), PhysAsset->SkeletalBodySetups.Num());
+    for (int32 i = 0; i < PhysAsset->SkeletalBodySetups.Num(); ++i)
+    {
+        if (PhysAsset->SkeletalBodySetups[i])
+        {
+            UE_LOG(LogSoccerSim, Log, TEXT("  Body[%d]: BoneName='%s'"),
+                i, *PhysAsset->SkeletalBodySetups[i]->BoneName.ToString());
+        }
+    }
+
     // Enable physics simulation on all bodies
+    // This auto-detaches MeshComp from CapsuleComp
     MeshComp->SetSimulatePhysics(true);
     MeshComp->WakeAllRigidBodies();
 
-    // Set physical animation to drive bodies toward targets
+    // Set physical animation to drive bodies toward animated pose (reference pose)
     if (PhysAnimComp)
     {
         PhysAnimComp->SetSkeletalMeshComponent(MeshComp);
 
-        // Apply physical animation to all bodies: drive orientation and position
+        // CRITICAL: bIsLocalSimulation = true
+        // This makes drives target LOCAL transforms (relative to parent body).
+        // With false (previous), drives targeted WORLD-space transforms, causing
+        // all bodies to be yanked back to their spawn positions when the root moves.
         FPhysicalAnimationData AnimData;
-        AnimData.bIsLocalSimulation = false;
-        AnimData.OrientationStrength = 100.0f;
-        AnimData.AngularVelocityStrength = 100.0f;
-        AnimData.PositionStrength = 100.0f;
-        AnimData.VelocityStrength = 100.0f;
+        AnimData.bIsLocalSimulation = true;
+        AnimData.OrientationStrength = 300.0f;
+        AnimData.AngularVelocityStrength = 30.0f;
+        AnimData.PositionStrength = 200.0f;
+        AnimData.VelocityStrength = 20.0f;
         AnimData.MaxAngularForce = 5000.0f;
-        AnimData.MaxLinearForce = 5000.0f;
+        AnimData.MaxLinearForce = 3000.0f;
 
+        // Apply to all bodies — pelvis PhysicalAnimation is intentionally left active.
+        // The root drive (spring 4000) and ground spring (spring 8000) are much stronger
+        // than the PhysicalAnimation position strength (200), so they win on the pelvis.
+        // The PhysicalAnimation orientation strength (300) on pelvis actually helps
+        // keep the body upright, supplementing the ground spring.
         PhysAnimComp->ApplyPhysicalAnimationSettingsBelow(NAME_None, AnimData, true);
+
+        UE_LOG(LogSoccerSim, Log, TEXT("SoccerPhysicsPawn: PhysicalAnimation configured (LocalSpace, OrientStr=300, PosStr=200)"));
     }
 
-    // Apply standing pose through muscle system
-    if (MuscleComp)
-    {
-        MuscleComp->ApplyStandingPose();
-    }
+    // NOTE: Do NOT call MuscleComp->ApplyStandingPose() here.
+    // It calls ResetAllBodiesSimulatePhysics() which destroys the drives we just set up.
+    // The bodies already start at the reference pose (default for no AnimBP).
 
     UE_LOG(LogSoccerSim, Log, TEXT("SoccerPhysicsPawn: Physics initialized on %s"), *GetName());
 }
