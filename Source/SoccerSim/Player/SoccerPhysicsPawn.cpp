@@ -158,12 +158,12 @@ void ASoccerPhysicsPawn::InitPhysics()
     UE_LOG(LogSoccerSim, Log, TEXT("SoccerPhysicsPawn: Physics initialized on %s"), *GetName());
 }
 
-void ASoccerPhysicsPawn::SetMovementInput(FVector2D Input)
+void ASoccerPhysicsPawn::SetMovementInput_Implementation(FVector2D Input)
 {
     CurrentMovementInput = Input;
 }
 
-void ASoccerPhysicsPawn::SetSprinting(bool bSprint)
+void ASoccerPhysicsPawn::SetSprinting_Implementation(bool bSprint)
 {
     bIsSprinting = bSprint;
 }

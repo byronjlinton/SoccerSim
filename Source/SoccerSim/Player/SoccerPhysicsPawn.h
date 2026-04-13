@@ -27,7 +27,10 @@ public:
     virtual void PostInitializeComponents() override;
 
     // -- Input interface (mirrors ASoccerPlayerPawn for AI/HUD compatibility) --
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "PhysicsPawn|Input")
     void SetMovementInput(FVector2D Input);
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "PhysicsPawn|Input")
     void SetSprinting(bool bSprint);
 
     UFUNCTION(BlueprintPure, Category = "PhysicsPawn")
